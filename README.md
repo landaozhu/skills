@@ -1,4 +1,4 @@
-# myshow-ai-playbook
+# 业务开发常见的skills和rules
 ## rules规则（强约束）
 - common：公共部分，包含前端、node开发等
 - umi：umi项目
