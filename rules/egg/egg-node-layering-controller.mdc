@@ -1,0 +1,42 @@
+---
+description: Egg Node 分层原则：Controller 只做参数校验/清洗与返回
+globs: app/controller/**/*.ts
+alwaysApply: false
+---
+
+# Egg Node 分层原则（Controller）
+
+在 Egg（Node/TS）项目中，**controller 必须保持轻薄**，只承担“输入→输出”的职责。
+
+## 必须遵守
+
+- **只做入参校验与参数清洗/适配**：`@validate`、类型转换、去重、默认值、兼容前端传参形态。
+- **只做调用编排**：调用 service（业务处理 service / RPC service）并把结果写回 `ctx.body`。
+- **不写复杂业务逻辑**：任何循环/分批/聚合/规则判断/多 RPC 串并行等复杂流程，抽到业务处理 service。
+- **不在 controller 里直接调 RPC**：RPC 调用必须封装到专门的 RPC service（见对应 service 规则）。
+- **异常 message 必须可定位**：controller 新增的 `catch` 抛错，`message` 必须包含 `controller` + 方法名，例如：`[controller pushCompetitionData failed] ...`。
+
+## 推荐结构
+
+- `controller`: 校验 & 清洗 → `ctx.service.xxx.handleYYY(params)` → `ctx.body = result`
+- `service(业务处理)`: 承接复杂流程，调用多个 service（含 RPC service）并返回统一结果
+- `service(RPC)`: 只负责 `requestRpc` 调用、错误兜底、返回原始数据结构
+
+## 示例（controller 只做校验/清洗/返回）
+
+```ts
+@validate('body', { projectIdList: { type: 'array', required: true }, bindType: { type: 'number', required: true } })
+async pushCompetitionData() {
+  const { ctx } = this;
+  const { projectIdList = [], bindType } = ctx.params as any;
+  const bindTypeNum = Number(bindType);
+  const uniqueProjectIds = [...new Set((projectIdList as any[]).map(Number).filter(Boolean))];
+
+  ctx.body = await ctx.service.competitionPush.handlePushCompetitionData({
+    uniqueProjectIds,
+    bindTypeNum,
+    rawBody: ctx.request.body,
+  });
+}
+```
+

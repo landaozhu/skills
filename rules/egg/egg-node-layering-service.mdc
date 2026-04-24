@@ -1,0 +1,38 @@
+---
+description: Egg Node 分层原则：业务处理 service 与 RPC service 分离
+globs: app/service/**/*.ts
+alwaysApply: false
+---
+
+# Egg Node 分层原则（Service）
+
+在 Egg（Node/TS）项目中，service 需要分两类，职责清晰、便于复用与测试。
+
+## 1) RPC Service（只负责调用 RPC）
+
+- **只做一件事**：`requestRpc` 调用 + `res.code` 校验 + `try/catch` 兜底 + return 原始数据（常见 `res.data.data`）。
+- **不要做业务判断/拦截**：比如“是否打标”“是否允许补推”等规则判断放到业务处理 service。
+- **错误处理模板**：按项目约定统一抛 `RequestError`，catch 时抛固定默认文案。
+- **异常 message 必须可定位**：service 新增的 `catch` 抛错，`message` 必须包含 `service` + 方法名，例如：`[service queryProjectBindListByDB failed] ...`。
+
+## 2) 业务处理 Service（承接复杂流程）
+
+- **承接 controller 下沉的复杂逻辑**：分批、聚合、并发、规则判断、跨多个 service 组合等。
+- **可调用多个 service**：包含 RPC service、领域 service（如 project service）等。
+- **统一返回结构**：供 controller 直接 `ctx.body = ...`。
+- **业务检查失败用 return，不用 RequestError**：规则校验、配置未达标、业务可预期失败等，应 **return** 统一结构（如 `{ code, msg, data, success }` 或与项目约定一致）。**`RequestError` 用于异常路径（会打日志/走错误中间件）**，例如 RPC 调用失败、未捕获的系统错误；不要把「业务检查不通过」与「异常」混用。
+
+## 示例（RPC service 模板）
+
+```ts
+async queryProjectBindListByDB(projectIdList: number[]) {
+  try {
+    const res = await requestRpc({ url: '/api/thrift/xxx', params: [{ projectIdList }], timeout: 15000 });
+    if (res.code !== 200) throw new RequestError({ code: res.code, message: res.msg || '批量查询项目绑定关系失败' });
+    return res?.data?.data || [];
+  } catch (e: any) {
+    throw new RequestError({ code: 500, message: '[service queryProjectBindListByDB failed]' + e?.errors?.message });
+  }
+}
+```
+
