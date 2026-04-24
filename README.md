@@ -1,6 +1,6 @@
 # 业务开发常见的skills和rules
 ## rules规则（强约束）
-- common：公共部分，包含前端、node开发等
+- frontend-dev-strict-scope-and-check: 前端项目约束（Vue、React等）
 - umi：umi项目
 - egg: egg项目
 ## skills
