@@ -11,3 +11,4 @@
 - generate-business-docs-from-code（业务梳理，让你快速了解所做需求的业务）
 - review-commit-push（提交代码，提交前通过commit-pre-check检查，没问题提交）
 - find-component-entry（通过.vue/.jsx文件，找到页面入口，在梳理大范围改动的时候特别有用）
+- optimize-daily-report（把日报改成可快速阅读的版本：小标题含动作与结果、事项有可确认状态、表述重心在动作与结果、去掉冗余和模糊表述）
